@@ -217,7 +217,8 @@ namespace E2EEServer
                                     for (int i = 0; i < msgCount; ++i)
                                     {
                                         bw.Write(messages[i].Item1); // Author
-                                        bw.Write(messages[i].Item2); // Message.
+                                        bw.Write(messages[i].Item2); // Initialisation vector for encryption.
+                                        bw.Write(messages[i].Item3); // Message.
                                     }
                                     bw.Flush();
                                 }

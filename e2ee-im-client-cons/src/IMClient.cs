@@ -189,12 +189,32 @@ namespace E2EEClientCommandLine
                             UInt32 msgCount = br.ReadUInt32();
                             var messages = new List<Tuple<string, string>>((int)msgCount);
 
-                            // Read messages into author-message pair buffer.
-                            for (int i = 0; i < msgCount; ++i)
+                            // Decrypt and display messages if there are any.
+                            if (msgCount > 0)
                             {
-                                string a = br.ReadString();
-                                string m = br.ReadString();
-                                messages.Add(new Tuple<string, string>(a, m));
+                                byte[] encryptionKey;
+                                if (!dmKeyring.TryGetValue(otherUser, out encryptionKey))
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Red;
+                                    Console.WriteLine($"Could not decrypt message using key from '{otherUser}'; A shared secret symmetric encryption key was not found in your keyring.");
+                                    Console.ResetColor();
+                                    break;
+                                }
+
+                                // Read messages into author-message pair buffer.
+                                for (int i = 0; i < msgCount; ++i)
+                                {
+                                    string a = br.ReadString();
+                                    string iv = br.ReadString();
+
+                                    // Decrypt message
+                                    string encrypted = br.ReadString();
+
+                                    string decrypted = CryptographicMethods.DecryptStringFromBase64_AES(encrypted, encryptionKey, Convert.FromBase64String(iv));
+
+
+                                    messages.Add(new Tuple<string, string>(a, decrypted));
+                                }
                             }
                             OnDMMsgsRetrieved(this, new IMDMMsgsRetrievedEventArgs(otherUser, messages));
 
@@ -231,6 +251,8 @@ namespace E2EEClientCommandLine
                         // Diffie-Hellman key exchange part 1. We send AG from here
                         case ((UInt32)IM_PacketBytes.DIFHEL_0):
                         {
+                            Console.WriteLine("Performing secure Diffie-Hellman symmetric key exchange...");
+
                             // User A's secret integer.
                             byte[] buffer = new byte[DifHelConstants.N_SIZE_BITS / 8];
                             using (var rng = new RNGCryptoServiceProvider())
@@ -305,12 +327,12 @@ namespace E2EEClientCommandLine
                             //
                             sec = BigInteger.ModPow(alice ? bg : ag, diffhel_sec, DifHelConstants.n);
 
-                            //Console.WriteLine($"{Username}'s secret is {sec} !");
-
                             // The secrets are the same between user1 and user2.
                             // Now we use a KDF to generate the key.
                             byte[] derivedKey = CryptographicMethods.DeriveKeyFromSecret(sec.ToString());
                             dmKeyring.Add(otherUser, derivedKey);
+
+                            //Console.WriteLine($"{Username}'s key is { Convert.ToBase64String(derivedKey) } !");
 
                         } break;
 
@@ -347,6 +369,11 @@ namespace E2EEClientCommandLine
         /// <summary>Send a secure, encrypted, direct message.</summary>
         public void SendMessageToDM (string user, string msg)
         {
+            if (user == Username)
+            {
+                return;
+            }
+
             string encrypted = string.Empty;
             byte[] encryptionKey;
             string iv;
@@ -407,11 +434,18 @@ namespace E2EEClientCommandLine
         }
 
         /// <summary>Request to start a direct message session with user.</summary>
-        public void BeginDM (string user)
+        public bool BeginDM (string user)
         {
+            // Avoid starting DM with themselves.
+            if (user == Username)
+            {
+                return false;
+            }
+
             bw.Write((UInt32)IM_PacketBytes.DIRM_BEGIN);
             bw.Write(user);
             bw.Flush();
+            return true;
         }
 
         /// <summary>Close the connection.</summary>

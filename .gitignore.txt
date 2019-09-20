@@ -1,5 +1,0 @@
-bin/*
-e2ee-im-client/*
-e2ee-im-server/*
-.vs/*
-**/obj/*

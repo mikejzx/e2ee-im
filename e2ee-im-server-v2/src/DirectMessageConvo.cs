@@ -18,9 +18,9 @@ namespace E2EEServer
     {
         private UserInfo user1, user2;
 
-        private List<Tuple<string, string>> messages = new List<Tuple<string, string>>();
+        private List<Tuple<string, string, string>> messages = new List<Tuple<string, string, string>>();
 
-        public List<Tuple<string, string>> Messages { get => messages; }
+        public List<Tuple<string, string, string>> Messages { get => messages; }
 
         // Diffie-Hellman parameters.
         private BigInteger AG, BG;
@@ -33,7 +33,7 @@ namespace E2EEServer
 
         public void MessageSend(string author, string recipient, string iv, string msg)
         {
-            messages.Add(new Tuple<string, string>(author, msg));
+            messages.Add(new Tuple<string, string, string>(author, iv, msg));
 
             // Remove messages until there are only 10.
             while (messages.Count > 10)

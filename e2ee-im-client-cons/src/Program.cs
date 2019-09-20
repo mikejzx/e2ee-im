@@ -150,7 +150,12 @@ namespace E2EEClientCommandLine
                 }
 
                 // Join/Create the DM.
-                client.BeginDM(u);
+                if (!client.BeginDM(u))
+                {
+                    // Tried to start DM with themselves.
+                    ErrorLog("Please enter a nickname other than your own.");
+                    continue;
+                }
                 waitingForResponse = true;
                 responseOK = false;
 
@@ -382,8 +387,16 @@ namespace E2EEClientCommandLine
 
         private void PrintMsg(string author, string msg, ConsoleColor userCol = ConsoleColor.Yellow)
         {
-            Console.ForegroundColor = userCol;
-            Console.Write($" {author}: ");
+            if (author != username)
+            {
+                Console.ForegroundColor = userCol;
+                Console.Write($" {author}: ");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.Write(" Me: ");
+            }
             Console.ResetColor();
             Console.WriteLine(msg);
         }

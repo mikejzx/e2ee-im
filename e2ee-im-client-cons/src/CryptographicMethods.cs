@@ -68,7 +68,7 @@ namespace E2EEClientCommandLine
                 ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV);
 
                 // Create streams
-                using (MemoryStream msDecrypt = new MemoryStream())
+                using (MemoryStream msDecrypt = new MemoryStream(cipherText))
                 {
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
                     {
